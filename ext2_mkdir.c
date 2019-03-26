@@ -5,7 +5,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <string.h>
 #include "ext2.h"
+
+unsigned char *disk;
 
 
 int count_entries(char *path){
@@ -36,7 +39,7 @@ unsigned int search_block_entry(char *name, struct ext2_dir_entry *start){
 	int count = 0;
 	while(count < 1024){
 		struct ext2_dir_entry *current = start + count;
-		if (compare_entry_name(name, current->name) == 1){
+		if (compare_entry_name(name, current->name, strlen(name)) == 1){
 			return current->inode;
 		}
 		count = count + current->rec_len;
@@ -110,7 +113,7 @@ int main(int argc, char **argv){
         		continue;
     		}
     		else{
-    			find = search_block_entry(entries[i],current->i_block[12][j-12] * EXT2_BLOCK_SIZE + disk);
+    			find = search_block_entry(entries[i],(current->i_block[12]*EXT2_BLOCK_SIZE+disk)[j-12] * EXT2_BLOCK_SIZE + disk);
     			if (find != -1){
     				break;
     			}
@@ -118,15 +121,16 @@ int main(int argc, char **argv){
     		}
     	}
     	if (find == -1){
-    		return EEXIST;
+    		return -1;
     	}
     	current = inode_table + sizeof(struct ext2_inode) * (find - 1);
     }
+    unsigned int target_block_num;
     if (current->i_blocks <= 12){
     	unsigned int target_block_num = current->i_block[current->i_blocks-1];
     }
     else{
-    	unsigned int target_block_num = current->i_block[12][current->i_blocks-13];
+    	unsigned int target_block_num = (current->i_block[12] * EXT2_BLOCK_SIZE + disk)[current->i_blocks-13];
     }
     struct ext2_dir_entry *start = target_block_num * EXT2_BLOCK_SIZE + disk;
     int count = 0;
@@ -135,7 +139,6 @@ int main(int argc, char **argv){
         count += start->rec_len;
     }
     struct ext2_dir_entry *new_entry = start + sizeof(struct ext2_dir_entry);
-    new_entry->name = "aaa";
     printf("aaa");
 
 
